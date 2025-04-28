@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Happy birthday!!!</title>
     <style>
         body {
@@ -26,507 +27,422 @@
     <canvas class="canvas"></canvas>
 
 <script>
-// Fireworks Animation
-const canvas = document.getElementById("fireworksCanvas");
-const ctx = canvas.getContext("2d");
+// —— DPI scaling helper ——  
+function setupCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const w   = window.innerWidth;
+  const h   = window.innerHeight;
+  canvas.width  = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width  = w + 'px';
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return ctx;
+}
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-window.addEventListener("resize", () => [canvas.width, canvas.height] = [window.innerWidth, window.innerHeight], false);
+// —— 初始化兩個 canvas ——  
+const fwCanvas  = document.getElementById("fireworksCanvas");
+const ctx       = setupCanvas(fwCanvas);
 
+const txtCanvas = document.querySelector(".canvas");
+setupCanvas(txtCanvas);
+
+window.addEventListener("resize", () => {
+  setupCanvas(fwCanvas);
+  setupCanvas(txtCanvas);
+}, false);
+
+// —— Fireworks Animation ——  
 class Firework {
-    constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = canvas.height;
-        this.sx = Math.random() * 3 - 1.5;
-        this.sy = Math.random() * -5 - 5;
-        this.size = Math.random() * 2 + 1;
-        const colorVal = Math.round(0xffffff * Math.random());
-        [this.r, this.g, this.b] = [colorVal >> 16, (colorVal >> 8) & 255, colorVal & 255];
-        this.shouldExplode = false;
-    }
-    update() {
-        this.shouldExplode = this.sy >= -2 || this.y <= 100 || this.x <= 0 || this.x >= canvas.width;
-        this.sy += 0.01;
-        [this.x, this.y] = [this.x + this.sx, this.y + this.sy];
-    }
-    draw() {
-        ctx.fillStyle = `rgb(${this.r},${this.g},${this.b})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-    }
+  constructor() {
+    this.x = Math.random() * window.innerWidth;
+    this.y = window.innerHeight;
+    this.sx = Math.random() * 3 - 1.5;
+    this.sy = Math.random() * -5 - 5;
+    this.size = Math.random() * 2 + 1;
+    const colorVal = Math.round(0xffffff * Math.random());
+    [this.r, this.g, this.b] = [colorVal >> 16, (colorVal >> 8) & 255, colorVal & 255];
+    this.shouldExplode = false;
+  }
+  update() {
+    this.shouldExplode = this.sy >= -2 || this.y <= 100 || this.x <= 0 || this.x >= window.innerWidth;
+    this.sy += 0.01;
+    this.x += this.sx;
+    this.y += this.sy;
+  }
+  draw() {
+    ctx.fillStyle = `rgb(${this.r},${this.g},${this.b})`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 class Particle {
-    constructor(x, y, r, g, b) {
-        [this.x, this.y, this.sx, this.sy, this.r, this.g, this.b] = [x, y, Math.random() * 3 - 1.5, Math.random() * 3 - 1.5, r, g, b];
-        this.size = Math.random() * 2 + 1;
-        this.life = 100;
-    }
-    update() {
-        [this.x, this.y, this.life] = [this.x + this.sx, this.y + this.sy, this.life - 1];
-    }
-    draw() {
-        ctx.fillStyle = `rgba(${this.r}, ${this.g}, ${this.b}, ${this.life / 100})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-    }
+  constructor(x, y, r, g, b) {
+    this.x = x; this.y = y;
+    this.sx = Math.random() * 3 - 1.5;
+    this.sy = Math.random() * 3 - 1.5;
+    this.size = Math.random() * 2 + 1;
+    this.life = 100;
+    this.r = r; this.g = g; this.b = b;
+  }
+  update() {
+    this.x += this.sx;
+    this.y += this.sy;
+    this.life--;
+  }
+  draw() {
+    ctx.fillStyle = `rgba(${this.r},${this.g},${this.b},${this.life/100})`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
-const fireworks = [new Firework()];
+const fireworks = [ new Firework() ];
 const particles = [];
 
 function animateFireworks() {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    Math.random() < 0.1 && fireworks.push(new Firework());
-    fireworks.forEach((firework, i) => {
-        firework.update();
-        firework.draw();
-        if (firework.shouldExplode) {
-            for (let j = 0; j < 100; j++) particles.push(new Particle(firework.x, firework.y, firework.r, firework.g, firework.b));
-            fireworks.splice(i, 1);
-        }
-    });
-    particles.forEach((particle, i) => {
-        particle.update();
-        particle.draw();
-        if (particle.life <= 0) particles.splice(i, 1);
-    });
-    requestAnimationFrame(animateFireworks);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+  if (Math.random() < 0.1) fireworks.push(new Firework());
+  fireworks.forEach((f, i) => {
+    f.update(); f.draw();
+    if (f.shouldExplode) {
+      for (let j = 0; j < 100; j++) {
+        particles.push(new Particle(f.x, f.y, f.r, f.g, f.b));
+      }
+      fireworks.splice(i, 1);
+    }
+  });
+  particles.forEach((p, i) => {
+    p.update(); p.draw();
+    if (p.life <= 0) particles.splice(i, 1);
+  });
+  requestAnimationFrame(animateFireworks);
 }
 
-// Text Animation
+// —— Text Animation ——  
 var S = {
-    init: function () {
-        S.Drawing.init('.canvas');
-        document.body.classList.add('body--ready');
-        
-        // 循環顯示祝福語
-        const messages = ["祝", "祐寧姊姊", "生日快樂"];
-        let currentIndex = 0;
-        
-        function showNextMessage() {
-            S.UI.simulate(messages[currentIndex]);
-            currentIndex = (currentIndex + 1) % messages.length;
-            setTimeout(showNextMessage, 3000);
-        }
-        
-        showNextMessage();
-        
-        S.Drawing.loop(function () {
-            S.Shape.render();
-        });
-    }
+  init: function () {
+    S.Drawing.init('.canvas');
+    document.body.classList.add('body--ready');
+    const messages = ["祝", "祐寧姊姊", "生日快樂"];
+    let idx = 0;
+    (function next(){
+      S.UI.simulate(messages[idx]);
+      idx = (idx + 1) % messages.length;
+      setTimeout(next, 3000);
+    })();
+    S.Drawing.loop(function(){
+      S.Shape.render();
+    });
+  }
 };
 
-// Rest of the text animation code...
 [S.Drawing, S.UI, S.Point, S.Color, S.Dot, S.ShapeBuilder, S.Shape] = [
-    // Drawing
-    (function () {
-        var canvas,
-            context,
-            renderFn,
-            requestFrame = window.requestAnimationFrame ||
-                window.webkitRequestAnimationFrame ||
-                window.mozRequestAnimationFrame ||
-                window.oRequestAnimationFrame ||
-                window.msRequestAnimationFrame ||
-                function (callback) {
-                    window.setTimeout(callback, 1000 / 60);
-                };
 
-        return {
-            init: function (el) {
-                canvas = document.querySelector(el);
-                context = canvas.getContext('2d');
-                this.adjustCanvas();
-                window.addEventListener('resize', function () {
-                    S.Drawing.adjustCanvas();
-                });
-            },
-            loop: function (fn) {
-                renderFn = !renderFn ? fn : renderFn;
-                this.clearFrame();
-                renderFn();
-                requestFrame.call(window, this.loop.bind(this));
-            },
-            adjustCanvas: function () {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            },
-            clearFrame: function () {
-                context.clearRect(0, 0, canvas.width, canvas.height);
-            },
-            getArea: function () {
-                return { w: canvas.width, h: canvas.height };
-            },
-            drawCircle: function (p, c) {
-                context.fillStyle = c.render();
-                context.beginPath();
-                context.arc(p.x, p.y, p.z, 0, 2 * Math.PI, true);
-                context.closePath();
-                context.fill();
-            }
-        };
-    }()),
+  // Drawing
+  (function(){
+    var canvas, context, renderFn,
+        requestFrame = window.requestAnimationFrame ||
+                       window.webkitRequestAnimationFrame ||
+                       window.mozRequestAnimationFrame ||
+                       window.oRequestAnimationFrame     ||
+                       window.msRequestAnimationFrame    ||
+                       function(cb){ window.setTimeout(cb,1000/60); };
 
-    // UI
-    (function () {
-        var interval,
-            currentAction,
-            sequence = [],
-            cmd = '#';
+    return {
+      init: function(el){
+        canvas  = document.querySelector(el);
+        context = setupCanvas(canvas);
+        window.addEventListener('resize', ()=> this.adjustCanvas());
+      },
+      loop: function(fn){
+        renderFn = renderFn || fn;
+        this.clearFrame();
+        renderFn();
+        requestFrame(this.loop.bind(this));
+      },
+      adjustCanvas: function(){
+        context = setupCanvas(canvas);
+      },
+      clearFrame: function(){
+        context.clearRect(0, 0, canvas.width, canvas.height);
+      },
+      getArea: function(){
+        const dpr = window.devicePixelRatio || 1;
+        return { w: canvas.width / dpr, h: canvas.height / dpr };
+      },
+      drawCircle: function(p, c){
+        context.fillStyle = c.render();
+        context.beginPath();
+        context.arc(p.x, p.y, p.z, 0, 2*Math.PI, true);
+        context.closePath();
+        context.fill();
+      }
+    };
+  }()),
 
-        function performAction(value) {
-            sequence = typeof value === 'object' ? value : sequence.concat(value.split('|'));
-            iterate();
-            return;
+  // UI
+  (function(){
+    var sequence = [];
+    function iterate(){
+      var cur = sequence.shift(), delay = 1000;
+      if(cur){
+        if(cur === 'CLEAR_CANVAS'){
+          S.Shape.clear();
+        } else {
+          S.Shape.switchShape(S.ShapeBuilder.letter(cur));
         }
+        setTimeout(iterate, delay);
+      }
+    }
+    return {
+      simulate: function(action){
+        sequence = sequence.concat(action.split('|'));
+        iterate();
+      }
+    };
+  }()),
 
-        function iterate() {
-            var current = sequence.shift(),
-                delay = 1000;
+  // Point
+  function(args){
+    this.x = args.x;
+    this.y = args.y;
+    this.z = args.z;
+    this.a = args.a;
+    this.h = args.h;
+  },
 
-            if (current) {
-                if (current === 'CLEAR_CANVAS') {
-                    S.Shape.clear();
-                } else {
-                    S.Shape.switchShape(S.ShapeBuilder.letter(current));
-                }
-                setTimeout(iterate, delay);
-            }
+  // Color
+  function(r, g, b, a){
+    this.r = r; this.g = g; this.b = b; this.a = a;
+  },
+
+  // Dot
+  function(x, y){
+    this.p = new S.Point({ x:x, y:y, z:5, a:1, h:0 });
+    this.e = 0.07; this.s = true;
+    this.c = new S.Color(255,255,255,this.p.a);
+    this.t = this.clone();
+    this.q = [];
+  },
+
+  // ShapeBuilder
+  (function(){
+    var gap = 13,
+        shapeCanvas = document.createElement('canvas'),
+        shapeContext = shapeCanvas.getContext('2d'),
+        fontSize = 500,
+        fontFamily = 'Avenir, Helvetica Neue, Helvetica, Arial, sans-serif';
+
+    function fit(){
+      shapeCanvas.width = Math.floor(window.innerWidth / gap) * gap;
+      shapeCanvas.height = Math.floor(window.innerHeight / gap) * gap;
+      shapeContext.fillStyle = 'red';
+      shapeContext.textBaseline = 'middle';
+      shapeContext.textAlign = 'center';
+    }
+
+    function processCanvas(){
+      var pixels = shapeContext.getImageData(0,0,shapeCanvas.width,shapeCanvas.height).data,
+          dots = [], x=0, y=0, fx=shapeCanvas.width, fy=shapeCanvas.height, w=0, h=0;
+
+      for(var p=0; p<pixels.length; p += 4*gap){
+        if(pixels[p+3] > 0){
+          dots.push(new S.Point({ x:x, y:y }));
+          w = x> w? x: w; h = y> h? y: h;
+          fx = x< fx? x: fx; fy = y< fy? y: fy;
         }
-
-        return {
-            simulate: function (action) {
-                performAction(action);
-            }
-        };
-    }()),
-
-    // Point
-    function (args) {
-        this.x = args.x;
-        this.y = args.y;
-        this.z = args.z;
-        this.a = args.a;
-        this.h = args.h;
-    },
-
-    // Color
-    function (r, g, b, a) {
-        this.r = r;
-        this.g = g;
-        this.b = b;
-        this.a = a;
-    },
-
-    // Dot
-    function (x, y) {
-        this.p = new S.Point({
-            x: x,
-            y: y,
-            z: 5,
-            a: 1,
-            h: 0
-        });
-
-        this.e = 0.07;
-        this.s = true;
-        this.c = new S.Color(255, 255, 255, this.p.a);
-        this.t = this.clone();
-        this.q = [];
-    },
-
-    // ShapeBuilder
-    (function () {
-        var gap = 13,
-            shapeCanvas = document.createElement('canvas'),
-            shapeContext = shapeCanvas.getContext('2d'),
-            fontSize = 500,
-            fontFamily = 'Avenir, Helvetica Neue, Helvetica, Arial, sans-serif';
-
-        function fit() {
-            shapeCanvas.width = Math.floor(window.innerWidth / gap) * gap;
-            shapeCanvas.height = Math.floor(window.innerHeight / gap) * gap;
-            shapeContext.fillStyle = 'red';
-            shapeContext.textBaseline = 'middle';
-            shapeContext.textAlign = 'center';
+        x += gap;
+        if(x >= shapeCanvas.width){
+          x = 0; y += gap;
+          p += gap * 4 * shapeCanvas.width;
         }
+      }
+      return { dots:dots, w:w+fx, h:h+fy };
+    }
 
-        function processCanvas() {
-            var pixels = shapeContext.getImageData(0, 0, shapeCanvas.width, shapeCanvas.height).data,
-                dots = [],
-                x = 0,
-                y = 0,
-                fx = shapeCanvas.width,
-                fy = shapeCanvas.height,
-                w = 0,
-                h = 0;
+    function setFontSize(s){
+      shapeContext.font = 'bold ' + s + 'px ' + fontFamily;
+    }
 
-            for (var p = 0; p < pixels.length; p += (4 * gap)) {
-                if (pixels[p + 3] > 0) {
-                    dots.push(new S.Point({
-                        x: x,
-                        y: y
-                    }));
+    function isNumber(n){
+      return !isNaN(parseFloat(n)) && isFinite(n);
+    }
 
-                    w = x > w ? x : w;
-                    h = y > h ? y : h;
-                    fx = x < fx ? x : fx;
-                    fy = y < fy ? y : fy;
-                }
+    function init(){
+      fit();
+      window.addEventListener('resize', fit);
+    }
+    init();
 
-                x += gap;
+    return {
+      letter: function(l){
+        setFontSize(fontSize);
+        var s = Math.min(
+          fontSize,
+          (shapeCanvas.width / shapeContext.measureText(l).width) * 0.8 * fontSize,
+          (shapeCanvas.height / fontSize) * (isNumber(l)?1:0.45) * fontSize
+        );
+        setFontSize(s);
+        shapeContext.clearRect(0,0,shapeCanvas.width,shapeCanvas.height);
+        shapeContext.fillText(l, shapeCanvas.width/2, shapeCanvas.height/2);
+        return processCanvas();
+      }
+    };
+  }()),
 
-                if (x >= shapeCanvas.width) {
-                    x = 0;
-                    y += gap;
-                    p += gap * 4 * shapeCanvas.width;
-                }
-            }
-
-            return { dots: dots, w: w + fx, h: h + fy };
+  // Shape
+  (function(){
+    var dots = [], width=0, height=0, cx=0, cy=0;
+    function compensate(){
+      var a = S.Drawing.getArea();
+      cx = a.w/2 - width/2;
+      cy = a.h/2 - height/2;
+    }
+    return {
+      shuffleIdle: function(){
+        var a = S.Drawing.getArea();
+        for(var d=0; d<dots.length; d++){
+          if(!dots[d].s){
+            dots[d].move({ x:Math.random()*a.w, y:Math.random()*a.h });
+          }
         }
-
-        function setFontSize(s) {
-            shapeContext.font = 'bold ' + s + 'px ' + fontFamily;
+      },
+      switchShape: function(n, fast){
+        var size, a = S.Drawing.getArea();
+        width = n.w; height = n.h; compensate();
+        if(n.dots.length > dots.length){
+          size = n.dots.length - dots.length;
+          for(var d=1; d<=size; d++){
+            dots.push(new S.Dot(a.w/2, a.h/2));
+          }
         }
-
-        function isNumber(n) {
-            return !isNaN(parseFloat(n)) && isFinite(n);
+        var d=0, i=0;
+        while(n.dots.length > 0){
+          i = Math.floor(Math.random()*n.dots.length);
+          dots[d].e = fast?0.25:(dots[d].s?0.14:0.11);
+          if(dots[d].s){
+            dots[d].move(new S.Point({ z:Math.random()*20+10, a:Math.random(), h:18 }));
+          } else {
+            dots[d].move(new S.Point({ z:Math.random()*5+5, h: fast?18:30 }));
+          }
+          dots[d].s = true;
+          dots[d].move(new S.Point({
+            x: n.dots[i].x + cx,
+            y: n.dots[i].y + cy,
+            a: 1, z: 5, h: 0
+          }));
+          n.dots = n.dots.slice(0,i).concat(n.dots.slice(i+1));
+          d++;
         }
-
-        function init() {
-            fit();
-            window.addEventListener('resize', fit);
+        for(var j=d; j<dots.length; j++){
+          if(dots[j].s){
+            dots[j].move(new S.Point({ z:Math.random()*20+10, a:Math.random(), h:20 }));
+            dots[j].s = false;
+            dots[j].e = 0.04;
+            dots[j].move(new S.Point({
+              x:Math.random()*a.w,
+              y:Math.random()*a.h,
+              a:0.3, z:Math.random()*4, h:0
+            }));
+          }
         }
-
-        init();
-
-        return {
-            letter: function (l) {
-                var s = 0;
-
-                setFontSize(fontSize);
-                s = Math.min(fontSize,
-                    (shapeCanvas.width / shapeContext.measureText(l).width) * 0.8 * fontSize,
-                    (shapeCanvas.height / fontSize) * (isNumber(l) ? 1 : 0.45) * fontSize);
-                setFontSize(s);
-
-                shapeContext.clearRect(0, 0, shapeCanvas.width, shapeCanvas.height);
-                shapeContext.fillText(l, shapeCanvas.width / 2, shapeCanvas.height / 2);
-
-                return processCanvas();
-            }
-        };
-    }()),
-
-    // Shape
-    (function () {
-        var dots = [],
-            width = 0,
-            height = 0,
-            cx = 0,
-            cy = 0;
-
-        function compensate() {
-            var a = S.Drawing.getArea();
-            cx = a.w / 2 - width / 2;
-            cy = a.h / 2 - height / 2;
+      },
+      render: function(){
+        for(var d=0; d<dots.length; d++){
+          dots[d].render();
         }
+      },
+      clear: function(){
+        dots = [];
+      }
+    };
+  }())
 
-        return {
-            shuffleIdle: function () {
-                var a = S.Drawing.getArea();
-                for (var d = 0; d < dots.length; d++) {
-                    if (!dots[d].s) {
-                        dots[d].move({
-                            x: Math.random() * a.w,
-                            y: Math.random() * a.h
-                        });
-                    }
-                }
-            },
-            switchShape: function (n, fast) {
-                var size,
-                    a = S.Drawing.getArea();
-
-                width = n.w;
-                height = n.h;
-
-                compensate();
-
-                if (n.dots.length > dots.length) {
-                    size = n.dots.length - dots.length;
-                    for (var d = 1; d <= size; d++) {
-                        dots.push(new S.Dot(a.w / 2, a.h / 2));
-                    }
-                }
-
-                var d = 0,
-                    i = 0;
-
-                while (n.dots.length > 0) {
-                    i = Math.floor(Math.random() * n.dots.length);
-                    dots[d].e = fast ? 0.25 : (dots[d].s ? 0.14 : 0.11);
-
-                    if (dots[d].s) {
-                        dots[d].move(new S.Point({
-                            z: Math.random() * 20 + 10,
-                            a: Math.random(),
-                            h: 18
-                        }));
-                    } else {
-                        dots[d].move(new S.Point({
-                            z: Math.random() * 5 + 5,
-                            h: fast ? 18 : 30
-                        }));
-                    }
-
-                    dots[d].s = true;
-                    dots[d].move(new S.Point({
-                        x: n.dots[i].x + cx,
-                        y: n.dots[i].y + cy,
-                        a: 1,
-                        z: 5,
-                        h: 0
-                    }));
-
-                    n.dots = n.dots.slice(0, i).concat(n.dots.slice(i + 1));
-                    d++;
-                }
-
-                for (var i = d; i < dots.length; i++) {
-                    if (dots[i].s) {
-                        dots[i].move(new S.Point({
-                            z: Math.random() * 20 + 10,
-                            a: Math.random(),
-                            h: 20
-                        }));
-
-                        dots[i].s = false;
-                        dots[i].e = 0.04;
-                        dots[i].move(new S.Point({
-                            x: Math.random() * a.w,
-                            y: Math.random() * a.h,
-                            a: 0.3,
-                            z: Math.random() * 4,
-                            h: 0
-                        }));
-                    }
-                }
-            },
-            render: function () {
-                for (var d = 0; d < dots.length; d++) {
-                    dots[d].render();
-                }
-            }
-        };
-    }())
 ];
 
 S.Color.prototype = {
-    render: function () {
-        return 'rgba(' + this.r + ',' + this.g + ',' + this.b + ',' + this.a + ')';
-    }
+  render: function(){
+    return 'rgba('+this.r+','+this.g+','+this.b+','+this.a+')';
+  }
 };
 
 S.Dot.prototype = {
-    clone: function () {
-        return new S.Point({
-            x: this.x,
-            y: this.y,
-            z: this.z,
-            a: this.a,
-            h: this.h
-        });
-    },
-    _draw: function () {
-        this.c.a = this.p.a;
-        S.Drawing.drawCircle(this.p, this.c);},
-        _moveTowards: function (n) {
-            var details = this.distanceTo(n, true),
-                dx = details[0],
-                dy = details[1],
-                d = details[2],
-                e = this.e * d;
-    
-            if (this.p.h === -1) {
-                this.p.x = n.x;
-                this.p.y = n.y;
-                return true;
-            }
-    
-            if (d > 1) {
-                this.p.x -= ((dx / d) * e);
-                this.p.y -= ((dy / d) * e);
-            } else {
-                if (this.p.h > 0) {
-                    this.p.h--;
-                } else {
-                    return true;
-                }
-            }
-    
-            return false;
-        },
-        _update: function () {
-            if (this._moveTowards(this.t)) {
-                var p = this.q.shift();
-                if (p) {
-                    this.t.x = p.x || this.p.x;
-                    this.t.y = p.y || this.p.y;
-                    this.t.z = p.z || this.p.z;
-                    this.t.a = p.a || this.p.a;
-                    this.p.h = p.h || 0;
-                } else {
-                    if (this.s) {
-                        this.p.x -= Math.sin(Math.random() * 3.142);
-                        this.p.y -= Math.sin(Math.random() * 3.142);
-                    } else {
-                        this.move(new S.Point({
-                            x: this.p.x + (Math.random() * 50) - 25,
-                            y: this.p.y + (Math.random() * 50) - 25,
-                        }));
-                    }
-                }
-            }
-    
-            d = this.p.a - this.t.a;
-            this.p.a = Math.max(0.1, this.p.a - (d * 0.05));
-            d = this.p.z - this.t.z;
-            this.p.z = Math.max(1, this.p.z - (d * 0.05));
-        },
-        distanceTo: function (n, details) {
-            var dx = this.p.x - n.x,
-                dy = this.p.y - n.y,
-                d = Math.sqrt(dx * dx + dy * dy);
-    
-            return details ? [dx, dy, d] : d;
-        },
-        move: function (p, avoidStatic) {
-            if (!avoidStatic || (avoidStatic && this.distanceTo(p) > 1)) {
-                this.q.push(p);
-            }
-        },
-        render: function () {
-            this._update();
-            this._draw();
+  clone: function(){
+    return new S.Point({ x:this.p.x, y:this.p.y, z:this.p.z, a:this.p.a, h:this.p.h });
+  },
+  _draw: function(){
+    this.c.a = this.p.a;
+    S.Drawing.drawCircle(this.p, this.c);
+  },
+  _moveTowards: function(n){
+    var details = this.distanceTo(n, true),
+        dx = details[0], dy = details[1], d = details[2],
+        e = this.e * d;
+    if(this.p.h === -1){
+      this.p.x = n.x; this.p.y = n.y;
+      return true;
+    }
+    if(d > 1){
+      this.p.x -= (dx/d)*e;
+      this.p.y -= (dy/d)*e;
+    } else {
+      if(this.p.h > 0){
+        this.p.h--;
+      } else {
+        return true;
+      }
+    }
+    return false;
+  },
+  _update: function(){
+    if(this._moveTowards(this.t)){
+      var p = this.q.shift();
+      if(p){
+        this.t.x = p.x||this.p.x;
+        this.t.y = p.y||this.p.y;
+        this.t.z = p.z||this.p.z;
+        this.t.a = p.a||this.p.a;
+        this.p.h = p.h||0;
+      } else {
+        if(this.s){
+          this.p.x -= Math.sin(Math.random()*3.142);
+          this.p.y -= Math.sin(Math.random()*3.142);
+        } else {
+          this.move(new S.Point({ x:this.p.x+(Math.random()*50)-25, y:this.p.y+(Math.random()*50)-25 }));
         }
-    };
-    
-    // Start both animations
-    window.addEventListener('load', function() {
-        // Start fireworks
-        animateFireworks();
-        
-        // Start text animation
-        S.init();
-    });
-    </script>
-    </body>
-    </html>
+      }
+    }
+    var d = this.p.a - this.t.a;
+    this.p.a = Math.max(0.1, this.p.a - d*0.05);
+    d = this.p.z - this.t.z;
+    this.p.z = Math.max(1, this.p.z - d*0.05);
+  },
+  distanceTo: function(n, details){
+    var dx = this.p.x - n.x, dy = this.p.y - n.y, d = Math.sqrt(dx*dx+dy*dy);
+    return details?[dx,dy,d]:d;
+  },
+  move: function(p, avoidStatic){
+    if(!avoidStatic || (avoidStatic && this.distanceTo(p)>1)){
+      this.q.push(p);
+    }
+  },
+  render: function(){
+    this._update();
+    this._draw();
+  }
+};
+
+// 啟動動畫
+window.addEventListener('load', function(){
+  animateFireworks();
+  S.init();
+});
+</script>
+</body>
+</html>
